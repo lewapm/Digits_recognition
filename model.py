@@ -87,7 +87,16 @@ class ImageClassifier:
         acc = accuracy_score(y_true, y_pred)
         return f1, acc
 
-    def train(self, train_dataset: Dataset, validation_dataset: Dataset, training_params: Optional[dict]) -> None:
+    def predict(self, input_data, batch_size):
+        predict_loader = DataLoader(input_data, batch_size=batch_size, drop_last=False)
+        res_pred = []
+        for batch_idx, sample in enumerate(predict_loader):
+            X = sample['image']
+            preds = self.model.forward(X)
+            res_pred += torch.argmax(preds, dim=1).tolist()
+        return res_pred
+
+    def train(self, train_dataset, validation_dataset, training_params):
         train_loader = DataLoader(train_dataset, batch_size=training_params['batch_size'], shuffle=True, drop_last=True)
         valid_loader = DataLoader(validation_dataset, batch_size=training_params['batch_size'], shuffle=True,
                                   drop_last=True)
@@ -111,3 +120,10 @@ class ImageClassifier:
         Path(path).mkdir(parents=True, exist_ok=True)
         filename = path + "/weights.ckpt"
         torch.save(self.model, filename)
+
+    def load_model(self, path):
+        self.model = torch.load(path+'/weights.ckpt')
+
+
+
+

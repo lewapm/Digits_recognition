@@ -23,7 +23,8 @@ def create_and_train_model(path='./train.pkl'):
 
 def get_model(path):
     try:
-        model = torch.load(path + '/weights.ckpt')
+        model = ImageClassifier()
+        model.load_model(path)
     except FileNotFoundError:
         model = create_and_train_model()
     return model
@@ -31,8 +32,10 @@ def get_model(path):
 
 def predict(input_data=None):
     model = get_model(hyperparams['model_save_dir'])
-    preds = model.forward(input_data)
-    preds = torch.argmax(preds, dim=1).tolist()
+    if input_data is not None:
+        input_dataset = Dataset(input_data, np.zeros(len(input_data)))
+        preds = model.predict(input_dataset, hyperparams["batch_size"])
     return preds
 
-predict()
+_, _, valid_img, valid_lab = prepare_input('./train.pkl')
+pred_values = predict(valid_img)
