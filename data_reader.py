@@ -1,7 +1,8 @@
 import pickle
 import matplotlib.pyplot as plt
 import numpy as np
-from scipy import ndimage
+from skimage.transform import rotate, AffineTransform, warp
+
 
 def load_data(path='./train.pkl'):
     with open(path, 'rb') as f:
@@ -17,22 +18,22 @@ def show_pic(pic):
 
 def augmentation_pic(pic):
     pat = pic.reshape(56, 56)
-    img_15 = ndimage.rotate(pat, 45, reshape=False).reshape(-1)
-    img_m15 = ndimage.rotate(pat, -15, reshape=False).reshape(-1)
-    img_30 = ndimage.rotate(pat, 30, reshape=False).reshape(-1)
-    img_m30 = ndimage.rotate(pat, -37, reshape=False).reshape(-1)
-    return img_15, img_30, img_m15, img_m30
+    tf1 = AffineTransform(shear=0.3)
+    tf2 = AffineTransform(shear=-0.3)
+    img_1 = rotate(pat, 25).reshape(-1)
+    img_2 = rotate(pat, -15).reshape(-1)
+    img_3 = warp(pat, tf1, order=1, preserve_range=True)
+    img_4 = warp(pat, tf2, order=1, preserve_range=True)
+    return [img_1, img_2, img_3, img_4]
 
 
 def create_augmented_list(images):
     res = []
     for img in images:
-        a, b, c, d = augmentation_pic(img)
-        res.append(a)
-        res.append(b)
-        res.append(c)
-        res.append(d)
+        x = augmentation_pic(img)
+        res += x
     return res
+
 
 def create_test_valid_ds(images, labels, valid_size=0.15):
     p = np.random.permutation(len(images))
@@ -58,52 +59,7 @@ def create_test_valid_ds(images, labels, valid_size=0.15):
     return train_img, train_lab, valid_img, valid_lab
 
 
-def prepare_input():
-    images, labels = load_data()
+def prepare_input(path):
+    images, labels = load_data(path)
     train_img, train_lab, valid_img, valid_lab = create_test_valid_ds(images, labels, 0.15)
     return train_img, train_lab, valid_img, valid_lab
-
-#
-# a, b, c ,d = prepare_input()
-# print(len(a), len(b))
-
-# images, labels = load_data()
-# res = [None] * 36
-# for i in range(len(images)):
-#     if res[labels[i][0]] is None:
-#         res[labels[i][0]] = images[i]
-#
-# print(len(res))
-# plt.figure(figsize=(12, 6))
-# for i in range(36):
-#     # print(i)
-#
-#     plt.subplot(6, 6, i + 1)
-#     # plt.tight_layout()
-#     plt.imshow(res[i].reshape(56, 56), cmap='gray', interpolation='none')
-#     plt.axis("off")
-#     plt.xticks([])
-#     plt.yticks([])
-#
-# plt.subplots_adjust(hspace=0, wspace=0)
-# plt.show()
-#
-#
-# #
-# images, labels = load_data()
-# unique, counts = np.unique(labels, return_counts=True)
-# labels_counter = dict(zip(unique, counts))
-# print(labels_counter)
-# x = np.array(sorted(counts))
-# print(np.sum(x[1:18])*0.85*4)
-# # tmp = np.reshape(res[6], (56, 56))
-# # plt.figure()
-# # plt.imshow(tmp, cmap='gray')
-# # plt.show()
-# #
-# #
-# print(sorted(counts))
-
-
-
-
