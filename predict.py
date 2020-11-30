@@ -5,6 +5,7 @@ from dataset import Dataset
 from data_reader import prepare_input
 from model import ImageClassifier
 from hyperparams import hyperparams
+from pathlib import Path
 
 seed = hyperparams["seed"]
 np.random.seed(seed)
@@ -35,7 +36,10 @@ def predict(input_data=None):
     if input_data is not None:
         input_dataset = Dataset(input_data, np.zeros(len(input_data)))
         preds = model.predict(input_dataset, hyperparams["batch_size"])
-    return preds
+        return np.array(preds).reshape(-1, 1)
 
+
+Path('./plots').mkdir(parents=True, exist_ok=True)
+Path(hyperparams["model_save_dir"]).mkdir(parents=True, exist_ok=True)
 _, _, valid_img, valid_lab = prepare_input('./train.pkl')
 pred_values = predict(valid_img)
