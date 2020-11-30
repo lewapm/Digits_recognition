@@ -1,1 +1,1 @@
-# Digits_recognition
+# Digits and letters classifier
