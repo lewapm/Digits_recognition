@@ -45,7 +45,12 @@ def create_test_valid_ds(images, labels, valid_size=0.15):
 
     train_img, train_lab, valid_img, valid_lab = [], [], [], []
     for i in range(36):
-        if len(img_lists[i]) < 100: continue
+        if len(img_lists[i]) < 100:
+            train_img += img_lists[i]
+            train_lab += [i] * len(img_lists[i])
+            valid_img += img_lists[i]
+            valid_lab += [i] * len(img_lists[i])
+            continue
         no = len(img_lists[i])
         no_valid = int(no * valid_size)
         train_tmp_img = img_lists[i][:-no_valid]
