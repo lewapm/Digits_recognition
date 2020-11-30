@@ -2,13 +2,12 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 import tqdm
+import numpy as np
 
 from torch.utils.data import DataLoader
-from typing import Optional
 from sklearn.metrics import accuracy_score, f1_score
-from dataset import Dataset
 from residual_block import ResidualBlock
-from pathlib import Path
+from utils import plot_training_loss
 
 DEVICE = "cpu"
 
@@ -56,6 +55,7 @@ class ImageClassifier:
         loss_fn = nn.CrossEntropyLoss()
         y_true = []
         y_pred = []
+        loss_tab = []
         for batch_idx, sample in enumerate(tqdm.tqdm(train_loader)):
             self.optimizer.zero_grad()
             X = sample['image']
@@ -67,12 +67,13 @@ class ImageClassifier:
 
             loss = loss_fn(preds, y) + l1_reg*l1_regularization
             loss.backward(retain_graph=True)
+            loss_tab.append(loss.data)
             self.optimizer.step()
             y_pred += torch.argmax(preds, dim=1).tolist()
             y_true += y.tolist()
-        f1 = f1_score(y_true, y_pred, average='weighted')
+        f1 = f1_score(y_true, y_pred, average='macro')
         acc = accuracy_score(y_true, y_pred)
-        return f1, acc
+        return f1, acc, loss_tab
 
     def eval_model(self, valid_loader):
         y_true = []
@@ -83,7 +84,7 @@ class ImageClassifier:
             preds = self.model.forward(X)
             y_pred += torch.argmax(preds, dim=1).tolist()
             y_true += y.tolist()
-        f1 = f1_score(y_true, y_pred, average='weighted')
+        f1 = f1_score(y_true, y_pred, average='macro')
         acc = accuracy_score(y_true, y_pred)
         return f1, acc
 
@@ -107,17 +108,22 @@ class ImageClassifier:
             self.optimizer = optim.SGD(self.model.parameters(), lr=training_params["lr"])
 
         best_f1 = 0
+        loss_tab = []
+        loss_tab_mean = []
         for epoch in range(training_params['epochs']):
-            train_f1, train_acc = self.train_epoch(train_loader, training_params["l1_reg"])
+            train_f1, train_acc, loss_tmp = self.train_epoch(train_loader, training_params["l1_reg"])
+            loss_tab += loss_tmp
+            loss_tab_mean += [np.mean(np.array(loss_tab)).tolist()]
             print(f"After epoch {epoch} for train acc: {train_acc:.3f}  f1: {train_f1:.3f}")
             valid_f1, valid_acc = self.eval_model(valid_loader)
             print(f"After epoch {epoch} for valid acc: {valid_acc:.3f}  f1: {valid_f1:.3f}")
             if valid_f1 > best_f1:
                 self.save_model(training_params['model_save_dir'])
                 best_f1 = valid_f1
+        plot_training_loss(loss_tab, 'full_loss')
+        plot_training_loss(loss_tab_mean, 'full_mean_loss')
 
     def save_model(self, path):
-        Path(path).mkdir(parents=True, exist_ok=True)
         filename = path + "/weights.ckpt"
         torch.save(self.model, filename)
 
